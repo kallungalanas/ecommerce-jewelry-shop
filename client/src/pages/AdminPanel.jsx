@@ -5,6 +5,8 @@ import { Package, Plus, Edit, Trash2, ShoppingBag, X, Save, Eye } from 'lucide-r
 import { productAPI, orderAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
+const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_URL || 'http://localhost:5000';
+
 const AdminPanel = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -41,9 +43,11 @@ const AdminPanel = () => {
     weight: '',
     price: '',
     stock: '',
-    featured: false,
-    images: []
+    featured: false
   });
+
+  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]); 
 
   const categories = ['Rings', 'Necklaces', 'Earrings', 'Bracelets', 'Bangles', 'Pendants', 'Sets'];
   const metalTypes = ['Gold', 'Silver', 'Platinum', 'Rose Gold', 'White Gold'];
@@ -90,17 +94,32 @@ const AdminPanel = () => {
     }
   }, [isAuthenticated, user, activeTab]);
 
-  const handleProductSubmit = async (e) => {
+const handleProductSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     
     try {
+      const formData = new FormData();
+      formData.append('name', productForm.name);
+      formData.append('description', productForm.description);
+      formData.append('category', productForm.category);
+      formData.append('metalType', productForm.metalType);
+      formData.append('purity', productForm.purity);
+      formData.append('weight', productForm.weight);
+      formData.append('price', productForm.price);
+      formData.append('stock', productForm.stock);
+      formData.append('featured', productForm.featured ? 'true' : 'false');
+      
+      selectedFiles.forEach((file) => {
+        formData.append('images', file);
+      });
+
       if (editingProduct) {
-        await productAPI.updateProduct(editingProduct._id, productForm);
+        await productAPI.updateProduct(editingProduct._id, formData);
         alert('Product updated successfully!');
       } else {
-        await productAPI.createProduct(productForm);
+        await productAPI.createProduct(formData);
         alert('Product added successfully!');
       }
       
@@ -116,6 +135,32 @@ const AdminPanel = () => {
     }
   };
 
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    const currentCount = selectedFiles.length;
+    if (currentCount + files.length > 5) {
+      alert('Maximum 5 images allowed!');
+      return;
+    }
+    const newPreviews = [];
+    const newFiles = [];
+    for (let file of files) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert(`File ${file.name} is too large. Max size 5MB.`);
+        continue;
+      }
+      newPreviews.push(URL.createObjectURL(file));
+      newFiles.push(file);
+    }
+    setImagePreviews(prev => [...prev, ...newPreviews]);
+    setSelectedFiles(prev => [...prev, ...newFiles]);
+  };
+
+  const removeImagePreview = (index) => {
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const resetForm = () => {
     setProductForm({
       name: '',
@@ -126,9 +171,10 @@ const AdminPanel = () => {
       weight: '',
       price: '',
       stock: '',
-      featured: false,
-      images: []
+      featured: false
     });
+    setSelectedFiles([]);
+    setImagePreviews([]);
     setEditingProduct(null);
     setShowAddProduct(false);
   };
@@ -249,7 +295,7 @@ const AdminPanel = () => {
                   <div key={product._id} className="bg-dark-card rounded-lg border border-dark-border overflow-hidden">
                     <div className="aspect-square bg-dark-elevated flex items-center justify-center">
                       {product.images?.[0] ? (
-                        <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+<img src={`${IMAGE_BASE_URL}${product.images[0]}`} alt={product.name} className="w-full h-full object-cover" />
                       ) : (
                         <Package size={48} className="text-gray-500" />
                       )}
@@ -484,6 +530,51 @@ const AdminPanel = () => {
                   </div>
                 </div>
 
+                {/* Images Section */}
+                <div className="col-span-2 mt-6">
+                  <label className="block text-sm font-medium mb-4">Product Images</label>
+                  <div className="relative border-2 border-dashed border-dark-border rounded-lg p-8 text-center hover:border-gold transition-colors cursor-pointer" 
+                    onDragOver={(e) => e.preventDefault()}
+                    onDragEnter={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      handleImageChange({ target: { files: e.dataTransfer.files } });
+                    }}
+                  >
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      id="image-upload"
+                    />
+                    <label htmlFor="image-upload" className="cursor-pointer flex flex-col items-center gap-2">
+                      <Plus className="w-12 h-12 text-gray-400" />
+                      <span className="font-medium">Click or drag & drop to add images</span>
+                      <span className="text-xs text-gray-500">Up to 5 images • JPG, PNG, WebP • Max 5MB each</span>
+                    </label>
+                  </div>
+                  {imagePreviews.length > 0 && (
+                    <div className="grid grid-cols-3 md:grid-cols-5 gap-3 mt-4">
+                      {imagePreviews.map((preview, index) => (
+                        <div key={index} className="relative">
+                          <img src={preview} className="w-full h-20 object-cover rounded-lg shadow-md" />
+                          <button 
+                            onClick={() => removeImagePreview(index)}
+                            className="absolute top-1 right-1 bg-red-500 rounded-full w-5 h-5 flex items-center justify-center text-white text-xs hover:bg-red-600 transition-colors"
+                          >
+                            <X size={10} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {editingProduct?.images?.length > 0 && (
+                    <p className="text-xs text-gray-400 mt-2">Current: {editingProduct.images.length} image(s). New uploads will replace them.</p>
+                  )}
+                </div>
+
                 <div className="flex gap-3 pt-4">
                   <button
                     type="submit"
@@ -584,7 +675,7 @@ const AdminPanel = () => {
                     <div key={index} className="flex gap-4 bg-dark-elevated p-3 rounded-lg">
                       {item.image && (
                         <img 
-                          src={item.image} 
+                          src={item.image.startsWith('http') ? item.image : `${IMAGE_BASE_URL}${item.image}`} 
                           alt={item.name}
                           className="w-16 h-16 object-cover rounded"
                         />

@@ -4,6 +4,7 @@ import { Heart, ShoppingCart } from 'lucide-react'
 import { useCart } from '../../context/CartContext'
 
 const ProductCard = ({ product }) => {
+  const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_URL || 'http://localhost:5000';
   const { addToCart } = useCart()
 
   const handleAddToCart = (e) => {
@@ -17,7 +18,7 @@ const ProductCard = ({ product }) => {
         {/* Image Container */}
         <div className="relative aspect-square overflow-hidden bg-dark-elevated">
           <img
-            src={product.images?.[0] || '/placeholder-jewelry.jpg'}
+            src={product.images?.[0] ? `${IMAGE_BASE_URL}${product.images[0]}` : '/placeholder-jewelry.jpg'}
             alt={product.name}
             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
           />

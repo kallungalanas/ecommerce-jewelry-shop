@@ -11,6 +11,7 @@ import {
   deleteProduct,
 } from '../controllers/productController.js'
 import { protect, admin } from '../middleware/authMiddleware.js'
+import { uploadImages } from '../middleware/upload.js'
 
 const router = express.Router()
 
@@ -21,8 +22,8 @@ router.get('/category/:category', getProductsByCategory)
 router.get('/:id', getProductById)
 
 // Admin routes
-router.post('/', protect, admin, createProduct)
-router.put('/:id', protect, admin, updateProduct)
+router.post('/', protect, admin, uploadImages, createProduct)
+router.put('/:id', protect, admin, uploadImages, updateProduct)
 router.delete('/:id', protect, admin, deleteProduct)
 
 export default router

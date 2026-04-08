@@ -5,7 +5,9 @@ import { useCart } from '../../context/CartContext'
 const ProductDetails = ({ product }) => {
   const [selectedImage, setSelectedImage] = useState(0)
   const [quantity, setQuantity] = useState(1)
-  const { addToCart } = useCart()
+const { addToCart } = useCart()
+
+  const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_URL || 'http://localhost:5000';
 
   const handleAddToCart = () => {
     addToCart(product, quantity)
@@ -17,7 +19,7 @@ const ProductDetails = ({ product }) => {
       <div>
         <div className="aspect-square bg-dark-elevated rounded-lg overflow-hidden mb-4">
           <img
-            src={product.images?.[selectedImage] || '/placeholder-jewelry.jpg'}
+            src={product.images?.[selectedImage] ? `${IMAGE_BASE_URL}${product.images[selectedImage]}` : '/placeholder-jewelry.jpg'}
             alt={product.name}
             className="w-full h-full object-cover"
           />
@@ -31,7 +33,7 @@ const ProductDetails = ({ product }) => {
                 selectedImage === index ? 'border-gold' : 'border-dark-border'
               }`}
             >
-              <img src={image} alt={`${product.name} ${index + 1}`} className="w-full h-full object-cover" />
+              <img src={image.startsWith('http') ? image : `${IMAGE_BASE_URL}${image}`} alt={`${product.name} ${index + 1}`} className="w-full h-full object-cover" />
             </button>
           ))}
         </div>

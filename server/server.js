@@ -28,8 +28,11 @@ app.use(express.urlencoded({ extended: true }))
 // Routes
 app.use('/api/auth', authRoutes)
 app.use('/api/products', productRoutes)
-app.use('/api/cart', cartRoutes)  // ADD THIS LINE
+app.use('/api/cart', cartRoutes)
 app.use('/api/orders', orderRoutes)
+
+// Serve uploaded images statically
+app.use('/uploads', express.static('public/uploads'))
 
 // Health check route
 app.get('/api/health', (req, res) => {

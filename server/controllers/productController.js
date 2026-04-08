@@ -146,15 +146,29 @@ export const filterProducts = async (req, res) => {
 // @access  Private/Admin
 export const createProduct = async (req, res) => {
   try {
-    const product = await Product.create(req.body)
+    const productData = { ...req.body };
+
+    // Handle uploaded images (replace images array)
+    if (req.files && req.files.length > 0) {
+      productData.images = req.files.map(file => `/uploads/images/${file.filename}`);
+    } else {
+      productData.images = [];
+    }
+
+    // Parse number fields
+    productData.price = parseFloat(productData.price);
+    productData.weight = parseFloat(productData.weight);
+    productData.stock = parseInt(productData.stock);
+
+    const product = await Product.create(productData);
 
     res.status(201).json({
       success: true,
       product,
     })
   } catch (error) {
-    console.error(error)
-    res.status(500).json({ message: 'Server error' })
+    console.error('Create product error:', error);
+    res.status(500).json({ message: error.message || 'Server error' });
   }
 }
 
@@ -163,9 +177,23 @@ export const createProduct = async (req, res) => {
 // @access  Private/Admin
 export const updateProduct = async (req, res) => {
   try {
+    const productData = { ...req.body };
+
+    // Handle uploaded images (replace existing - per requirement)
+    if (req.files && req.files.length > 0) {
+      productData.images = req.files.map(file => `/uploads/images/${file.filename}`);
+    }
+    // If no files, req.body.images will be undefined, mongoose ignores unset fields for arrays? But to replace empty, if client sends empty array ok.
+
+    // Parse numbers
+    if (productData.price !== undefined) productData.price = parseFloat(productData.price);
+    if (productData.weight !== undefined) productData.weight = parseFloat(productData.weight);
+    if (productData.stock !== undefined) productData.stock = parseInt(productData.stock);
+    if (productData.featured !== undefined) productData.featured = Boolean(productData.featured);
+
     const product = await Product.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      productData,
       { new: true, runValidators: true }
     )
 
@@ -178,8 +206,8 @@ export const updateProduct = async (req, res) => {
       product,
     })
   } catch (error) {
-    console.error(error)
-    res.status(500).json({ message: 'Server error' })
+    console.error('Update product error:', error);
+    res.status(500).json({ message: error.message || 'Server error' });
   }
 }
 
